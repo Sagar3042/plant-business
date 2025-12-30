@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Plant Business Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --glass: rgba(255, 255, 255, 0.05); --border: rgba(255, 255, 255, 0.1); --green: #00d2ff; --dark: #1a1a2e; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: var(--dark); color: white; min-height: 100vh; padding: 20px; font-size: 14px; }
+        header {
+            display: flex; justify-content: space-between; align-items: center; padding: 20px;
+            background: var(--glass); backdrop-filter: blur(10px); border-radius: 15px; border: 1px solid var(--border); margin-bottom: 30px;
+        }
+        h1 { font-size: 1.5rem; color: #00d2ff; }
+        .logout-btn { background: #e94560; color: white; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .card {
+            background: var(--glass); backdrop-filter: blur(16px); border: 1px solid var(--border);
+            border-radius: 16px; padding: 20px; text-align: center; transition: 0.4s;
+        }
+        .card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.3); }
+        .card h3 { color: #fff; margin-bottom: 10px; }
+        .text-green { color: #00d2ff; font-weight: bold; } .text-red { color: #ff6b6b; font-weight: bold; }
+
+        .admin-panel { display: none; background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 20px; border-radius: 20px; margin-bottom: 30px; }
+        .form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+        input, select { flex: 1; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: white; border-radius: 8px; }
+        .btn-add { background: #00d2ff; border: none; padding: 10px 20px; border-radius: 8px; color: #000; font-weight: bold; cursor: pointer; }
+
+        .table-container { background: var(--glass); padding: 20px; border-radius: 20px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        th { color: #aaa; }
+        .badge { padding: 5px 10px; border-radius: 10px; font-size: 0.8rem; }
+        .bg-p { background: rgba(0,210,255,0.2); color: #00d2ff; } .bg-o { background: rgba(255,165,0,0.2); color: orange; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🌱 Plant Manager <span style="font-size:0.8rem; color:#aaa;" id="role-display"></span></h1>
+    <button onclick="logout()" class="logout-btn">Logout</button>
+</header>
+
+<div class="grid" id="partner-list"></div>
+
+<div class="admin-panel" id="adminPanel">
+    <h4 style="margin-bottom:15px; color:#00d2ff;">📝 Add Expense</h4>
+    <form id="expenseForm" class="form-row">
+        <input type="date" id="date" required>
+        <select id="category"><option value="Plant Purchase">🌿 Plant</option><option value="Other Expense">🛠️ Other</option></select>
+        <input type="number" id="amount" placeholder="Tk" required>
+        <input type="text" id="desc" placeholder="Desc">
+        <button type="submit" class="btn-add">Save</button>
+    </form>
+    <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 0;">
+    <h4 style="margin-bottom:15px; color:#ffcc00;">👥 Update Partner Balance</h4>
+    <form id="partnerForm" class="form-row">
+        <select id="pName">
+            <option value="Sona">Sona</option><option value="Arindam">Arindam</option>
+            <option value="Ujjal">Ujjal</option><option value="Sagar">Sagar</option>
+        </select>
+        <input type="number" id="pGiven" placeholder="Total Given (Tk)" required>
+        <input type="number" id="pDue" placeholder="Due Amount (Tk)" required>
+        <button type="submit" class="btn-add" style="background: #ffcc00;">Update</button>
+    </form>
+</div>
+
+<div class="table-container">
+    <h3 style="margin-bottom: 20px;">📜 Transaction History</h3>
+    <table>
+        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead>
+        <tbody id="expenseTable"></tbody>
+    </table>
+</div>
+
+<script>
+    async function checkAuth() {
+        const res = await fetch('/api/session');
+        const data = await res.json();
+        if (!data.loggedIn) window.location.href = 'login.html';
+        else {
+            document.getElementById('role-display').innerText = `(${data.role.toUpperCase()})`;
+            if (data.role === 'admin') document.getElementById('adminPanel').style.display = 'block';
+            loadData();
+        }
+    }
+
+    async function loadData() {
+        const pRes = await fetch('/api/partner');
+        const partners = await pRes.json();
+        document.getElementById('partner-list').innerHTML = partners.map(p => `
+            <div class="card">
+                <h3>${p.name}</h3>
+                <p class="text-green">Given: ${p.given} ৳</p>
+                <p class="text-red">Due: ${p.due} ৳</p>
+            </div>
+        `).join('');
+
+        const eRes = await fetch('/api/expense');
+        const expenses = await eRes.json();
+        document.getElementById('expenseTable').innerHTML = expenses.map(e => `
+            <tr>
+                <td>${e.date}</td>
+                <td><span class="badge ${e.category.includes('Plant')?'bg-p':'bg-o'}">${e.category}</span></td>
+                <td>${e.description}</td>
+                <td style="font-weight:bold; color:white;">${e.amount} ৳</td>
+            </tr>
+        `).join('');
+    }
+
+    // Expense Save
+    document.getElementById('expenseForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            date: document.getElementById('date').value,
+            category: document.getElementById('category').value,
+            amount: document.getElementById('amount').value,
+            description: document.getElementById('desc').value
+        };
+        await fetch('/api/expense', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+        alert('Expense Saved!'); loadData(); e.target.reset();
+    });
+
+    // Partner Update
+    document.getElementById('partnerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            name: document.getElementById('pName').value,
+            given: document.getElementById('pGiven').value,
+            due: document.getElementById('pDue').value
+        };
+        await fetch('/api/partner-update', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+        alert('Partner Updated!'); loadData();
+    });
+
+    async function logout() { await fetch('/api/logout'); window.location.href = 'login.html'; }
+    checkAuth();
+</script>
+</body>
+</html>
