@@ -10,14 +10,16 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use(express.static('public'));
 
-// --- MONGODB CONNECTION ---
-const MONGO_URI = "mongodb+srv://prakritidost_db_user:sagar@cluster0.str6vtc.mongodb.net/?appName=Cluster0";
+// --- 1. MONGODB DATABASE CONNECTION ---
+// আপনার নতুন পাসওয়ার্ড (sagar12345) এখানে সেট করা হয়েছে
+const MONGO_URI = "mongodb+srv://prakritidost_db_user:sagar12345@cluster0.str6vtc.mongodb.net/?appName=Cluster0";
 
 mongoose.connect(MONGO_URI)
-    .then(() => console.log("✅ MongoDB Connected! System Ready."))
-    .catch(err => console.error("❌ DB Error:", err));
+    .then(() => console.log("✅ MongoDB Connected Successfully!"))
+    .catch(err => console.error("❌ DB Connection Error:", err));
 
-// --- ENCRYPTION SETUP ---
+// --- 2. ENCRYPTION SETUP (AES-256) ---
+// টাকার অংক এনক্রিপ্ট করার চাবি
 const ENCRYPTION_KEY = crypto.scryptSync('my-secret-business-password', 'salt', 32); 
 const IV_LENGTH = 16; 
 
@@ -43,33 +45,34 @@ function decrypt(text) {
     } catch (e) { return "Error"; }
 }
 
-// --- DATABASE MODELS ---
-// 1. Expense (Added 'addedBy' and 'time')
+// --- 3. DATABASE MODELS ---
+
+// খরচের হিসাব (কে এড করল, সময়, আইটেমের নাম সহ)
 const expenseSchema = new mongoose.Schema({
-    date: String,
-    time: String,
-    category: String,
-    itemName: String,
-    amount: String, // Encrypted
-    addedBy: String // কে এড করেছে (Ujjal/Sagar etc)
+    date: String,      // YYYY-MM-DD
+    time: String,      // 10:30 PM
+    category: String,  // Plant / Other
+    itemName: String,  // Rose / Pot / Tea
+    amount: String,    // Encrypted
+    addedBy: String    // Ujjal / Sagar etc.
 });
 
-// 2. Fund (Tracks who gave money and when)
+// ফান্ডের হিসাব (কে কত টাকা দিল)
 const fundSchema = new mongoose.Schema({
     name: String,
     amount: String, // Encrypted
     date: String
 });
 
-// 3. User (For login management)
+// ইউজার একাউন্ট (পার্টনারদের লগইন)
 const userSchema = new mongoose.Schema({
     username: String,
-    password: String, // In real app, hash this!
+    password: String, 
     role: String, // 'admin' or 'partner'
     name: String
 });
 
-// 4. Login History
+// লগইন হিস্ট্রি (কে কখন ঢুকল)
 const logSchema = new mongoose.Schema({
     name: String,
     loginTime: String,
@@ -81,78 +84,95 @@ const Fund = mongoose.model('Fund', fundSchema);
 const User = mongoose.model('User', userSchema);
 const Log = mongoose.model('Log', logSchema);
 
-// --- SESSION SETUP (Persistent Login) ---
+// --- 4. SESSION SETUP (লগইন ধরে রাখার জন্য) ---
 app.use(session({
-    secret: 'super-secret-key',
+    secret: 'super-secure-secret-key',
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 } // ৩০ দিন লগইন থাকবে
 }));
 
-// --- API ROUTES ---
+// --- 5. API ROUTES ---
 
-// 1. LOGIN API
+// === LOGIN SYSTEM ===
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
 
-    // A. Check for MAIN ADMIN
+    // A. MAIN ADMIN CHECK (Fixed ID/Pass)
     if (username === '9328472337' && password === 'sagar') {
         req.session.user = { name: 'Sagar (Admin)', role: 'admin' };
-        // Log History
-        await Log.create({ name: 'Admin', loginTime: new Date().toLocaleTimeString(), date: new Date().toLocaleDateString() });
+        
+        // Save History
+        await Log.create({ 
+            name: 'Admin', 
+            loginTime: new Date().toLocaleTimeString(), 
+            date: new Date().toLocaleDateString() 
+        });
+        
         return res.json({ success: true, role: 'admin' });
     }
 
-    // B. Check for Created Users (Partners)
+    // B. PARTNER CHECK (Database)
     const user = await User.findOne({ username, password });
     if (user) {
         req.session.user = { name: user.name, role: user.role };
-        // Log History
-        await Log.create({ name: user.name, loginTime: new Date().toLocaleTimeString(), date: new Date().toLocaleDateString() });
+        
+        // Save History
+        await Log.create({ 
+            name: user.name, 
+            loginTime: new Date().toLocaleTimeString(), 
+            date: new Date().toLocaleDateString() 
+        });
+        
         return res.json({ success: true, role: user.role });
     }
 
     res.status(401).json({ success: false, message: 'ভুল ইউজারনেম বা পাসওয়ার্ড!' });
 });
 
-// Logout
 app.get('/api/logout', (req, res) => {
     req.session.destroy();
     res.json({ success: true });
 });
 
-// Check Session
 app.get('/api/session', (req, res) => {
-    if (req.session.user) res.json({ loggedIn: true, role: req.session.user.role, name: req.session.user.name });
-    else res.json({ loggedIn: false });
+    if (req.session.user) {
+        res.json({ loggedIn: true, role: req.session.user.role, name: req.session.user.name });
+    } else {
+        res.json({ loggedIn: false });
+    }
 });
 
-// Middleware
+// MIDDLEWARE (Security Check)
 function requireLogin(req, res, next) {
     if (req.session.user) next();
     else res.status(401).json({ error: 'Unauthorized' });
 }
 
-// --- EXPENSE ROUTES ---
+// === EXPENSE MANAGEMENT ===
 
-// Add Expense (সবাই পারবে)
+// 1. Add Expense (সবাই পারবে)
 app.post('/api/expense', requireLogin, async (req, res) => {
     const { date, time, category, itemName, amount } = req.body;
     await Expense.create({
-        date, time, category, itemName,
+        date, 
+        time, 
+        category, 
+        itemName,
         amount: encrypt(amount),
         addedBy: req.session.user.name
     });
     res.json({ message: 'Saved' });
 });
 
-// Get Expense by DATE
+// 2. Get Expense List (By Date)
 app.get('/api/expense', requireLogin, async (req, res) => {
-    const { date } = req.query; // e.g., ?date=2023-10-25
+    const { date } = req.query; // Client will send ?date=2023-10-25
     let query = {};
     if(date) query = { date: date };
     
     const expenses = await Expense.find(query).sort({_id: -1});
+    
     const data = expenses.map(r => ({
         date: r.date,
         time: r.time,
@@ -164,19 +184,19 @@ app.get('/api/expense', requireLogin, async (req, res) => {
     res.json(data);
 });
 
-// Get Monthly Summary for Chart
+// 3. Get Monthly Summary (For Graph)
 app.get('/api/summary', requireLogin, async (req, res) => {
-    // এখানে আমরা সব ডাটা এনে ফিল্টার করব (সিম্পল লজিক)
     const allExp = await Expense.find();
     let plantTotal = 0;
     let otherTotal = 0;
     
-    // চলতি মাসের নাম বের করা
-    const currentMonth = new Date().getMonth(); // 0-11
-    
+    const currentMonth = new Date().getMonth(); // Current Month Index (0-11)
+    const currentYear = new Date().getFullYear();
+
     allExp.forEach(ex => {
         const d = new Date(ex.date);
-        if (d.getMonth() === currentMonth) {
+        // Check if same month and year
+        if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
             const amt = parseFloat(decrypt(ex.amount));
             if (ex.category === 'Plant') plantTotal += amt;
             else otherTotal += amt;
@@ -186,25 +206,31 @@ app.get('/api/summary', requireLogin, async (req, res) => {
     res.json({ plant: plantTotal, other: otherTotal });
 });
 
-// --- FUND & USER MANAGEMENT (Admin Only) ---
+// === ADMIN FEATURES (Fund & User) ===
 
-// Create User (Admin Only)
+// 1. Create New Partner (Admin Only)
 app.post('/api/create-user', requireLogin, async (req, res) => {
-    if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Not Admin"});
+    if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Only Admin Allowed"});
+    
     const { name, username, password } = req.body;
+    // Check if user exists
+    const existing = await User.findOne({ username });
+    if(existing) return res.status(400).json({msg: "User already exists"});
+
     await User.create({ name, username, password, role: 'partner' });
-    res.json({ message: 'User Created' });
+    res.json({ message: 'User Created Successfully' });
 });
 
-// Add Fund Record (Admin Only)
+// 2. Add Fund (Admin Only)
 app.post('/api/fund', requireLogin, async (req, res) => {
-    if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Not Admin"});
+    if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Only Admin Allowed"});
+    
     const { name, amount, date } = req.body;
     await Fund.create({ name, amount: encrypt(amount), date });
     res.json({ message: 'Fund Added' });
 });
 
-// Get Fund List
+// 3. Get Fund List
 app.get('/api/fund', requireLogin, async (req, res) => {
     const funds = await Fund.find().sort({ date: -1 });
     const data = funds.map(f => ({
@@ -215,9 +241,10 @@ app.get('/api/fund', requireLogin, async (req, res) => {
     res.json(data);
 });
 
-// Get Login Logs (Admin Only)
+// 4. Get Login History (Admin Only)
 app.get('/api/logs', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Not Admin"});
+    
     const logs = await Log.find().sort({_id: -1}).limit(20);
     res.json(logs);
 });
