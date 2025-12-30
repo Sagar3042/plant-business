@@ -99,7 +99,7 @@ app.get('/api/session', (req, res) => {
 });
 function requireLogin(req, res, next) { if (req.session.user) next(); else res.status(401).json({ error: 'Unauthorized' }); }
 
-// --- EXPENSE MANAGEMENT ---
+// --- EXPENSE ---
 app.post('/api/expense', requireLogin, async (req, res) => {
     const { date, time, category, itemName, amount } = req.body;
     await Expense.create({ date, time, category, itemName, amount: encrypt(amount), addedBy: req.session.user.name });
@@ -113,7 +113,6 @@ app.put('/api/expense-update', requireLogin, async (req, res) => {
     res.json({ message: 'Updated' });
 });
 
-// NEW: Delete Expense
 app.delete('/api/expense/:id', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     await Expense.findByIdAndDelete(req.params.id);
@@ -130,27 +129,43 @@ app.get('/api/expense', requireLogin, async (req, res) => {
     res.json(data);
 });
 
+// UPDATED SUMMARY API (Dynamic based on selected date)
 app.get('/api/summary', requireLogin, async (req, res) => {
+    const { date } = req.query; // YYYY-MM-DD passed from frontend
     const allExp = await Expense.find();
-    let plantTotal = 0, otherTotal = 0;
-    const currentMonth = new Date().getMonth(); const currentYear = new Date().getFullYear();
+    
+    const targetDate = new Date(date);
+    const targetMonth = targetDate.getMonth();
+    const targetYear = targetDate.getFullYear();
+    const targetDayString = date; // "2023-10-27"
+
+    let monthStats = { plant: 0, other: 0 };
+    let dayStats = { plant: 0, other: 0 };
+
     allExp.forEach(ex => {
         const d = new Date(ex.date);
-        if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-            const amt = parseFloat(decrypt(ex.amount));
-            if (ex.category === 'Plant') plantTotal += amt; else otherTotal += amt;
+        const amt = parseFloat(decrypt(ex.amount));
+        
+        // Month Calculation
+        if (d.getMonth() === targetMonth && d.getFullYear() === targetYear) {
+            if (ex.category === 'Plant') monthStats.plant += amt; 
+            else monthStats.other += amt;
+        }
+
+        // Day Calculation
+        if (ex.date === targetDayString) {
+             if (ex.category === 'Plant') dayStats.plant += amt; 
+             else dayStats.other += amt;
         }
     });
-    res.json({ plant: plantTotal, other: otherTotal });
+
+    res.json({ month: monthStats, day: dayStats });
 });
 
 // --- FUND & FINANCE ---
-
-// Get Financial Data & Fund List
 app.get('/api/finance-status', requireLogin, async (req, res) => {
-    const allFunds = await Fund.find().sort({date: -1}); // Sort by date new
+    const allFunds = await Fund.find().sort({date: -1});
     let totalFund = 0;
-    
     const fundList = allFunds.map(f => {
         const amt = parseFloat(decrypt(f.amount));
         totalFund += amt;
@@ -162,61 +177,44 @@ app.get('/api/finance-status', requireLogin, async (req, res) => {
     allExpenses.forEach(e => totalExpense += parseFloat(decrypt(e.amount)));
 
     const holdings = await CashHolding.find();
-    const holdingData = holdings.map(h => ({
-        name: h.name, type: h.type, amount: decrypt(h.amount)
-    }));
+    const holdingData = holdings.map(h => ({ name: h.name, type: h.type, amount: decrypt(h.amount) }));
 
-    res.json({
-        totalFund,
-        totalExpense,
-        balance: totalFund - totalExpense,
-        holdings: holdingData,
-        fundList: fundList // Sending detailed list
-    });
+    res.json({ totalFund, totalExpense, balance: totalFund - totalExpense, holdings: holdingData, fundList });
 });
 
-// Add Fund
 app.post('/api/fund', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Not Admin"});
     const { name, amount, date } = req.body;
     await Fund.create({ name, amount: encrypt(amount), date }); res.json({ message: 'Added' });
 });
 
-// NEW: Update Fund
+// Update Fund
 app.put('/api/fund-update', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     const { id, name, amount, date } = req.body;
-    await Fund.findByIdAndUpdate(id, { name, amount: encrypt(amount), date });
-    res.json({ message: 'Fund Updated' });
+    await Fund.findByIdAndUpdate(id, { name, amount: encrypt(amount), date }); res.json({ message: 'Updated' });
 });
 
-// NEW: Delete Fund
+// Delete Fund
 app.delete('/api/fund/:id', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
-    await Fund.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Fund Deleted' });
+    await Fund.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' });
 });
 
-// Update Holdings
 app.post('/api/update-holding', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     const { name, type, amount } = req.body;
     const existing = await CashHolding.findOne({ name, type });
-    if (existing) {
-        existing.amount = encrypt(amount); await existing.save();
-    } else {
-        await CashHolding.create({ name, type, amount: encrypt(amount) });
-    }
+    if (existing) { existing.amount = encrypt(amount); await existing.save(); }
+    else { await CashHolding.create({ name, type, amount: encrypt(amount) }); }
     res.json({ message: 'Updated' });
 });
 
-// Admin User Create & Logs
 app.post('/api/create-user', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Not Admin"});
     const { name, username, password } = req.body;
     await User.create({ name, username, password, role: 'partner' }); res.json({ message: 'Created' });
 });
-
 app.get('/api/logs', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Not Admin"});
     const logs = await Log.find().sort({_id: -1}).limit(20); res.json(logs);
