@@ -4,18 +4,25 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const session = require('express-session');
 const cors = require('cors');
+// Local testing এর জন্য dotenv রাখা হলো, কিন্তু Render এ এটা অটোমেটিক কাজ করবে
+require('dotenv').config(); 
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 app.use(express.static('public'));
 
-// --- MONGODB CONNECTION ---
-const MONGO_URI = "mongodb+srv://admin:sagar12345@cluster0.str6vtc.mongodb.net/?appName=Cluster0";
+// --- MONGODB CONNECTION (SECURE) ---
+// এখানে আর কোনো পাসওয়ার্ড নেই। এটি Render এর সেটিংস থেকে আসবে।
+const MONGO_URI = process.env.MONGO_URI;
 
-mongoose.connect(MONGO_URI)
-    .then(() => console.log("✅ MongoDB Connected!"))
-    .catch(err => console.error("❌ DB Error:", err));
+if (!MONGO_URI) {
+    console.error("❌ Error: MONGO_URI is missing! Check Render Environment Variables.");
+} else {
+    mongoose.connect(MONGO_URI)
+        .then(() => console.log("✅ MongoDB Connected Securely!"))
+        .catch(err => console.error("❌ DB Error:", err));
+}
 
 // --- ENCRYPTION ---
 const ENCRYPTION_KEY = crypto.scryptSync('my-secret-business-password', 'salt', 32); 
@@ -99,26 +106,23 @@ app.get('/api/session', (req, res) => {
 });
 function requireLogin(req, res, next) { if (req.session.user) next(); else res.status(401).json({ error: 'Unauthorized' }); }
 
-// --- EXPENSE ---
+// Expense API
 app.post('/api/expense', requireLogin, async (req, res) => {
     const { date, time, category, itemName, amount } = req.body;
     await Expense.create({ date, time, category, itemName, amount: encrypt(amount), addedBy: req.session.user.name });
     res.json({ message: 'Saved' });
 });
-
 app.put('/api/expense-update', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     const { id, itemName, category, amount } = req.body;
     await Expense.findByIdAndUpdate(id, { itemName, category, amount: encrypt(amount) });
     res.json({ message: 'Updated' });
 });
-
 app.delete('/api/expense/:id', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     await Expense.findByIdAndDelete(req.params.id);
     res.json({ message: 'Deleted' });
 });
-
 app.get('/api/expense', requireLogin, async (req, res) => {
     const { date } = req.query; let query = {}; if(date) query = { date: date };
     const expenses = await Expense.find(query).sort({_id: -1});
@@ -129,15 +133,16 @@ app.get('/api/expense', requireLogin, async (req, res) => {
     res.json(data);
 });
 
-// UPDATED SUMMARY API (Dynamic based on selected date)
+// Summary API (Corrected Date Logic)
 app.get('/api/summary', requireLogin, async (req, res) => {
-    const { date } = req.query; // YYYY-MM-DD passed from frontend
+    const { date } = req.query; 
     const allExp = await Expense.find();
     
-    const targetDate = new Date(date);
+    // Use selected date or fallback to today
+    const targetDate = date ? new Date(date) : new Date();
     const targetMonth = targetDate.getMonth();
     const targetYear = targetDate.getFullYear();
-    const targetDayString = date; // "2023-10-27"
+    const targetDayString = date || targetDate.toISOString().split('T')[0];
 
     let monthStats = { plant: 0, other: 0 };
     let dayStats = { plant: 0, other: 0 };
@@ -158,11 +163,10 @@ app.get('/api/summary', requireLogin, async (req, res) => {
              else dayStats.other += amt;
         }
     });
-
     res.json({ month: monthStats, day: dayStats });
 });
 
-// --- FUND & FINANCE ---
+// Finance & Fund API
 app.get('/api/finance-status', requireLogin, async (req, res) => {
     const allFunds = await Fund.find().sort({date: -1});
     let totalFund = 0;
@@ -171,11 +175,9 @@ app.get('/api/finance-status', requireLogin, async (req, res) => {
         totalFund += amt;
         return { id: f._id, name: f.name, amount: amt, date: f.date };
     });
-
     const allExpenses = await Expense.find();
     let totalExpense = 0;
     allExpenses.forEach(e => totalExpense += parseFloat(decrypt(e.amount)));
-
     const holdings = await CashHolding.find();
     const holdingData = holdings.map(h => ({ name: h.name, type: h.type, amount: decrypt(h.amount) }));
 
@@ -187,20 +189,15 @@ app.post('/api/fund', requireLogin, async (req, res) => {
     const { name, amount, date } = req.body;
     await Fund.create({ name, amount: encrypt(amount), date }); res.json({ message: 'Added' });
 });
-
-// Update Fund
 app.put('/api/fund-update', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     const { id, name, amount, date } = req.body;
     await Fund.findByIdAndUpdate(id, { name, amount: encrypt(amount), date }); res.json({ message: 'Updated' });
 });
-
-// Delete Fund
 app.delete('/api/fund/:id', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     await Fund.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' });
 });
-
 app.post('/api/update-holding', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     const { name, type, amount } = req.body;
@@ -209,7 +206,6 @@ app.post('/api/update-holding', requireLogin, async (req, res) => {
     else { await CashHolding.create({ name, type, amount: encrypt(amount) }); }
     res.json({ message: 'Updated' });
 });
-
 app.post('/api/create-user', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Not Admin"});
     const { name, username, password } = req.body;
