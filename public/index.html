@@ -13,41 +13,39 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background-color: var(--dark); color: var(--text); padding-bottom: 80px; }
 
-        /* HEADER */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--glass); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .menu-btn { font-size: 1.5rem; cursor: pointer; color: var(--green); }
+
+        /* Sidebar Styling */
+        .sidebar { position: fixed; top: 0; right: -320px; width: 300px; height: 100%; background: #111; z-index: 200; transition: 0.4s; padding: 20px; box-shadow: -5px 0 15px rgba(0,0,0,0.5); overflow-y: auto; }
+        .sidebar.active { right: 0; }
+        .close-btn { font-size: 1.5rem; color: #ff6b6b; cursor: pointer; float: right; }
         
-        /* GRAPH SECTION */
+        /* Financial Card in Sidebar */
+        .finance-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px; margin-top: 40px; border: 1px solid rgba(255,255,255,0.1); }
+        .fin-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+        .fin-total { font-weight: bold; color: #00d2ff; }
+        .fin-expense { font-weight: bold; color: #ff6b6b; }
+        .fin-balance { font-weight: bold; color: #ffcc00; font-size: 1.2rem; border-top: 1px solid #333; padding-top: 5px; margin-top: 5px; }
+        
+        .holding-item { background: #222; padding: 8px; margin-bottom: 5px; border-radius: 5px; font-size: 0.8rem; display: flex; justify-content: space-between; }
+
         .chart-container { width: 90%; margin: 20px auto; background: var(--glass); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); height: 250px; display: flex; justify-content: center; position: relative; }
         .chart-title { position: absolute; top: 10px; left: 20px; font-size: 0.9rem; color: #aaa; }
 
-        /* DATE NAVIGATOR */
-        .date-nav { display: flex; justify-content: space-between; align-items: center; width: 90%; margin: 20px auto; background: var(--glass); padding: 10px 20px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); }
+        .date-section { width: 90%; margin: 20px auto; text-align: center; }
+        .date-nav { display: flex; justify-content: space-between; align-items: center; background: var(--glass); padding: 10px 20px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; }
         .nav-btn { background: none; border: none; color: var(--green); font-size: 1.2rem; cursor: pointer; }
         .current-date { font-weight: 600; }
+        .daily-total-badge { background: #ffaa00; color: black; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; display: inline-block; }
 
-        /* EXPENSE LIST */
         .expense-list { width: 90%; margin: 0 auto; }
         .expense-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 15px; margin-bottom: 10px; border-radius: 12px; border-left: 4px solid var(--green); }
-        .item-left h4 { font-size: 1rem; margin-bottom: 2px; }
-        .item-left p { font-size: 0.75rem; color: #aaa; }
-        .item-right { text-align: right; }
         .amount { font-size: 1.1rem; font-weight: bold; color: var(--green); }
-        .badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.1); margin-left: 5px; }
-
-        /* FAB (PLUS BUTTON) */
-        .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: var(--green); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 2rem; color: #000; box-shadow: 0 5px 15px rgba(0,210,255,0.4); cursor: pointer; transition: 0.3s; z-index: 100; border: none; }
-        .fab:hover { transform: scale(1.1); }
-
-        /* SIDEBAR */
-        .sidebar { position: fixed; top: 0; right: -300px; width: 280px; height: 100%; background: #16213e; z-index: 200; transition: 0.4s; padding: 20px; box-shadow: -5px 0 15px rgba(0,0,0,0.5); overflow-y: auto; }
-        .sidebar.active { right: 0; }
-        .close-btn { font-size: 1.5rem; color: #ff6b6b; cursor: pointer; float: right; }
-        .sidebar h3 { margin-top: 40px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; color: var(--green); }
-        .menu-item { margin: 15px 0; font-size: 0.9rem; }
-        .admin-section { display: none; } /* Hidden by default */
-
-        /* MODAL (ADD FORM) */
+        .edit-btn { background: none; border: none; color: #aaa; cursor: pointer; margin-left: 10px; font-size: 1rem; }
+        
+        .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: var(--green); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 2rem; color: #000; box-shadow: 0 5px 15px rgba(0,210,255,0.4); cursor: pointer; z-index: 100; border: none; }
+        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 300; justify-content: center; align-items: center; }
         .modal-content { background: #222; padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; position: relative; }
         .form-group { margin-bottom: 15px; }
@@ -55,7 +53,7 @@
         .form-group input, .form-group select { width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: white; border-radius: 5px; }
         .btn-submit { width: 100%; padding: 12px; background: var(--green); border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .close-modal { position: absolute; top: 15px; right: 15px; font-size: 1.2rem; cursor: pointer; color: #ff6b6b; }
-
+        .badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.1); margin-left: 5px; }
     </style>
 </head>
 <body>
@@ -70,46 +68,71 @@
     <canvas id="expenseChart"></canvas>
 </div>
 
-<div class="date-nav">
-    <button class="nav-btn" onclick="changeDate(-1)"><i class="fas fa-chevron-left"></i></button>
-    <div class="current-date" id="displayDate">Today</div>
-    <button class="nav-btn" onclick="changeDate(1)"><i class="fas fa-chevron-right"></i></button>
+<div class="date-section">
+    <div class="daily-total-badge" id="dailyTotal">Total: ₹ 0.00</div>
+    <div class="date-nav">
+        <button class="nav-btn" onclick="changeDate(-1)"><i class="fas fa-chevron-left"></i></button>
+        <div class="current-date" id="displayDate">Today</div>
+        <button class="nav-btn" onclick="changeDate(1)"><i class="fas fa-chevron-right"></i></button>
+    </div>
 </div>
 
-<div class="expense-list" id="expenseContainer">
-    <div style="text-align: center; color: #555; margin-top: 20px;">Loading...</div>
-</div>
-
+<div class="expense-list" id="expenseContainer">Loading...</div>
 <button class="fab" onclick="openModal()"><i class="fas fa-plus"></i></button>
 
 <div class="sidebar" id="sidebar">
     <div class="close-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></div>
-    
-    <h3>💰 Total Fund</h3>
-    <div id="fundList" style="margin-top: 10px; font-size: 0.85rem; color: #ccc;">
-        </div>
 
-    <div class="admin-section" id="adminControls">
-        <h3>🔑 Admin Controls</h3>
+    <div class="finance-card">
+        <h3 style="color:white; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:15px;">💰 PrakritiDost Fund</h3>
         
-        <div style="margin-top: 15px;">
-            <p style="color: #aaa; margin-bottom: 5px;">Add Partner ID</p>
-            <input type="text" id="newInfoName" placeholder="Name" style="width: 100%; padding: 5px; margin-bottom: 5px; background: #333; border: none; color: white;">
-            <input type="text" id="newInfoUser" placeholder="Username" style="width: 100%; padding: 5px; margin-bottom: 5px; background: #333; border: none; color: white;">
-            <input type="text" id="newInfoPass" placeholder="Password" style="width: 100%; padding: 5px; margin-bottom: 5px; background: #333; border: none; color: white;">
-            <button onclick="createUser()" style="width: 100%; padding: 5px; background: #ffcc00; border: none; cursor: pointer;">Create User</button>
+        <div class="fin-row">
+            <span>Total Collected:</span>
+            <span class="fin-total" id="finCollected">₹ 0.00</span>
+        </div>
+        <div class="fin-row">
+            <span>Total Expense:</span>
+            <span class="fin-expense" id="finExpense">₹ 0.00</span>
+        </div>
+        <div class="fin-row">
+            <span>Net Balance:</span>
+            <span class="fin-balance" id="finBalance">₹ 0.00</span>
         </div>
 
-        <div style="margin-top: 15px;">
-            <p style="color: #aaa; margin-bottom: 5px;">Add Fund Record</p>
-            <input type="text" id="fundName" placeholder="Partner Name" style="width: 100%; padding: 5px; margin-bottom: 5px; background: #333; border: none; color: white;">
-            <input type="number" id="fundAmount" placeholder="Amount" style="width: 100%; padding: 5px; margin-bottom: 5px; background: #333; border: none; color: white;">
-            <input type="date" id="fundDate" style="width: 100%; padding: 5px; margin-bottom: 5px; background: #333; border: none; color: white;">
-            <button onclick="addFund()" style="width: 100%; padding: 5px; background: #00d2ff; border: none; cursor: pointer;">Save Fund</button>
+        <h4 style="margin-top:15px; color:#aaa; font-size:0.8rem;">Cash In Hand / Online</h4>
+        <div id="holdingList">
+            </div>
+    </div>
+
+    <div id="adminControls" style="display:none; margin-top:20px;">
+        <h3 style="border-top:1px solid #333; paddingTop:10px;">🔑 Admin Controls</h3>
+        
+        <div style="background:#222; padding:10px; border-radius:5px; margin-bottom:15px;">
+            <p style="font-size:0.8rem; color:#00d2ff; margin-bottom:5px;">Update Money with Member</p>
+            <input type="text" id="holdName" placeholder="Partner Name" style="width:100%; margin:2px 0; padding:5px; background:#333; border:none; color:white;">
+            <select id="holdType" style="width:100%; margin:2px 0; padding:5px; background:#333; border:none; color:white;">
+                <option value="Cash">Cash</option>
+                <option value="Online">Online</option>
+            </select>
+            <input type="number" id="holdAmount" placeholder="Amount" style="width:100%; margin:2px 0; padding:5px; background:#333; border:none; color:white;">
+            <button onclick="updateHolding()" style="width:100%; padding:5px; background:#00d2ff; border:none; margin-top:5px; font-weight:bold;">Update Holding</button>
         </div>
 
-        <h3>🕒 Login History</h3>
-        <div id="loginLogs" style="font-size: 0.8rem; color: #888; max-height: 150px; overflow-y: auto;"></div>
+        <button onclick="document.getElementById('createUserSection').style.display='block'" style="width:100%; padding:5px; background:#444; color:white; border:none; margin-bottom:5px;">+ Create User</button>
+        <div id="createUserSection" style="display:none; margin-bottom:10px;">
+            <input type="text" id="newInfoName" placeholder="Name" style="width:100%; margin:2px 0; padding:5px; background:#333; border:none; color:white;">
+            <input type="text" id="newInfoUser" placeholder="Username" style="width:100%; margin:2px 0; padding:5px; background:#333; border:none; color:white;">
+            <input type="text" id="newInfoPass" placeholder="Password" style="width:100%; margin:2px 0; padding:5px; background:#333; border:none; color:white;">
+            <button onclick="createUser()" style="width:100%; padding:5px; background:#ffcc00; border:none;">Save User</button>
+        </div>
+
+        <button onclick="document.getElementById('addFundSection').style.display='block'" style="width:100%; padding:5px; background:#444; color:white; border:none; margin-bottom:5px;">+ Add Fund Record</button>
+        <div id="addFundSection" style="display:none;">
+            <input type="text" id="fundName" placeholder="Name" style="width:100%; margin:2px 0; padding:5px; background:#333; border:none; color:white;">
+            <input type="number" id="fundAmount" placeholder="Amount" style="width:100%; margin:2px 0; padding:5px; background:#333; border:none; color:white;">
+            <input type="date" id="fundDate" style="width:100%; margin:2px 0; padding:5px; background:#333; border:none; color:white;">
+            <button onclick="addFund()" style="width:100%; padding:5px; background:#00d2ff; border:none;">Save Fund</button>
+        </div>
     </div>
 
     <button onclick="logout()" style="width: 100%; padding: 10px; background: #ff4b2b; color: white; border: none; margin-top: 30px; border-radius: 5px;">Logout</button>
@@ -118,8 +141,9 @@
 <div class="modal" id="entryModal">
     <div class="modal-content">
         <div class="close-modal" onclick="closeModal()"><i class="fas fa-times"></i></div>
-        <h3 style="color: var(--green); margin-bottom: 20px;">Add New Expense</h3>
+        <h3 id="modalTitle" style="color: var(--green); margin-bottom: 20px;">Add New Expense</h3>
         <form id="expenseForm">
+            <input type="hidden" id="editId">
             <div class="form-group">
                 <label>Item Name</label>
                 <input type="text" id="itemName" placeholder="e.g. Tape, Pot" required>
@@ -132,8 +156,8 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Amount (Tk)</label>
-                <input type="number" id="amount" placeholder="50" required>
+                <label>Amount (₹)</label>
+                <input type="number" step="0.01" id="amount" placeholder="0.00" required>
             </div>
             <button type="submit" class="btn-submit">Submit</button>
         </form>
@@ -141,46 +165,32 @@
 </div>
 
 <script>
-    let currentDate = new Date(); // Tracks selected date
+    let currentDate = new Date();
     let myChart = null;
+    let currentUserRole = '';
+    const moneyFormat = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 });
 
-    // --- INIT ---
     async function init() {
         const res = await fetch('/api/session');
         const user = await res.json();
+        if (!user.loggedIn) { window.location.href = 'login.html'; return; }
+        currentUserRole = user.role;
         
-        if (!user.loggedIn) {
-            window.location.href = 'login.html';
-            return;
-        }
-
-        // Show Admin Controls if admin
-        if (user.role === 'admin') {
-            document.getElementById('adminControls').style.display = 'block';
-            loadLogs();
-        }
+        if (user.role === 'admin') document.getElementById('adminControls').style.display = 'block';
 
         updateDateDisplay();
         loadExpenses();
         loadChart();
-        loadFunds();
+        loadFinancialStatus(); // New Feature
     }
 
-    // --- DATE LOGIC ---
     function updateDateDisplay() {
         const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
         document.getElementById('displayDate').innerText = currentDate.toLocaleDateString('en-US', options);
     }
+    function changeDate(days) { currentDate.setDate(currentDate.getDate() + days); updateDateDisplay(); loadExpenses(); }
 
-    function changeDate(days) {
-        currentDate.setDate(currentDate.getDate() + days);
-        updateDateDisplay();
-        loadExpenses(); // Reload data for new date
-    }
-
-    // --- DATA LOADING ---
     async function loadExpenses() {
-        // Format date as YYYY-MM-DD for API
         const year = currentDate.getFullYear();
         const month = String(currentDate.getMonth() + 1).padStart(2, '0');
         const day = String(currentDate.getDate()).padStart(2, '0');
@@ -188,138 +198,144 @@
 
         const res = await fetch(`/api/expense?date=${formattedDate}`);
         const data = await res.json();
-        
         const container = document.getElementById('expenseContainer');
-        if(data.length === 0) {
-            container.innerHTML = '<div style="text-align:center; color:#555; margin-top:20px;">No expenses for this date.</div>';
-            return;
+        let dailyTotal = 0;
+        
+        if(data.length === 0) container.innerHTML = '<div style="text-align:center; color:#555; margin-top:20px;">No expenses.</div>';
+        else {
+            container.innerHTML = data.map(item => {
+                dailyTotal += parseFloat(item.amount);
+                const editButton = currentUserRole === 'admin' ? `<button class="edit-btn" onclick="openEditModal('${item.id}', '${item.itemName}', '${item.category}', '${item.amount}')"><i class="fas fa-pen"></i></button>` : '';
+                return `
+                <div class="expense-item">
+                    <div class="item-left">
+                        <h4>${item.itemName} <span class="badge" style="color:${item.category==='Plant'?'#00d2ff':'orange'}">${item.category}</span></h4>
+                        <p>Added by: ${item.addedBy} at ${item.time}</p>
+                    </div>
+                    <div class="item-right">
+                        <div class="amount">${moneyFormat.format(item.amount)}</div>${editButton}
+                    </div>
+                </div>`;
+            }).join('');
         }
-
-        container.innerHTML = data.map(item => `
-            <div class="expense-item">
-                <div class="item-left">
-                    <h4>${item.itemName} <span class="badge" style="color:${item.category==='Plant'?'#00d2ff':'orange'}">${item.category}</span></h4>
-                    <p>Added by: ${item.addedBy} at ${item.time}</p>
-                </div>
-                <div class="item-right">
-                    <div class="amount">${item.amount} ৳</div>
-                </div>
-            </div>
-        `).join('');
+        document.getElementById('dailyTotal').innerText = `Total: ${moneyFormat.format(dailyTotal)}`;
     }
 
-    async function loadFunds() {
-        const res = await fetch('/api/fund');
+    // NEW: Load Financial Data (Sidebar)
+    async function loadFinancialStatus() {
+        const res = await fetch('/api/finance-status');
         const data = await res.json();
-        document.getElementById('fundList').innerHTML = data.map(f => `
-            <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding: 8px 0;">
-                <div style="display:flex; justify-content:space-between;">
-                    <span style="color:white; font-weight:bold;">${f.name}</span>
-                    <span style="color:#00d2ff;">${f.amount} ৳</span>
+
+        document.getElementById('finCollected').innerText = moneyFormat.format(data.totalFund);
+        document.getElementById('finExpense').innerText = moneyFormat.format(data.totalExpense);
+        document.getElementById('finBalance').innerText = moneyFormat.format(data.balance);
+
+        const holdingContainer = document.getElementById('holdingList');
+        if(data.holdings.length === 0) holdingContainer.innerHTML = '<div style="color:#555; font-size:0.7rem;">No records yet.</div>';
+        else {
+            holdingContainer.innerHTML = data.holdings.map(h => `
+                <div class="holding-item">
+                    <span>${h.name} (${h.type})</span>
+                    <span style="color:#00d2ff;">${moneyFormat.format(h.amount)}</span>
                 </div>
-                <div style="font-size:0.7rem;">Date: ${f.date}</div>
-            </div>
-        `).join('');
+            `).join('');
+        }
     }
 
-    async function loadLogs() {
-        const res = await fetch('/api/logs');
-        const logs = await res.json();
-        document.getElementById('loginLogs').innerHTML = logs.map(l => `
-            <div style="margin-bottom:5px;">${l.name} - ${l.date} ${l.loginTime}</div>
-        `).join('');
-    }
-
-    // --- CHART LOGIC ---
     async function loadChart() {
         const res = await fetch('/api/summary');
         const data = await res.json();
-
         const ctx = document.getElementById('expenseChart').getContext('2d');
-        if(myChart) myChart.destroy(); // Clear old chart
-
+        if(myChart) myChart.destroy();
         myChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: ['Plants', 'Others'],
-                datasets: [{
-                    data: [data.plant, data.other],
-                    backgroundColor: ['#00d2ff', '#ffaa00'],
-                    borderWidth: 0
-                }]
+                datasets: [{ data: [data.plant, data.other], backgroundColor: ['#00d2ff', '#ffaa00'], borderWidth: 0 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right', labels: { color: 'white' } }
-                }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: 'white' } } } }
         });
     }
 
-    // --- ACTIONS ---
+    // Modal Logic
+    function openModal() {
+        document.getElementById('entryModal').style.display = 'flex';
+        document.getElementById('expenseForm').reset();
+        document.getElementById('editId').value = '';
+        document.getElementById('modalTitle').innerText = 'Add New Expense';
+    }
+    window.openEditModal = function(id, name, cat, amount) {
+        document.getElementById('entryModal').style.display = 'flex';
+        document.getElementById('modalTitle').innerText = 'Edit Expense';
+        document.getElementById('editId').value = id;
+        document.getElementById('itemName').value = name;
+        document.getElementById('category').value = cat;
+        document.getElementById('amount').value = amount;
+    }
+    function closeModal() { document.getElementById('entryModal').style.display = 'none'; }
+
+    // Submit Expense
     document.getElementById('expenseForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const editId = document.getElementById('editId').value;
+        const itemName = document.getElementById('itemName').value;
+        const category = document.getElementById('category').value;
+        const amount = document.getElementById('amount').value;
         
-        // Format Date YYYY-MM-DD
-        const year = currentDate.getFullYear();
-        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-        const day = String(currentDate.getDate()).padStart(2, '0');
-        const formattedDate = `${year}-${month}-${day}`;
-        
-        const data = {
-            date: formattedDate,
-            time: new Date().toLocaleTimeString(),
-            itemName: document.getElementById('itemName').value,
-            category: document.getElementById('category').value,
-            amount: document.getElementById('amount').value
-        };
-
-        await fetch('/api/expense', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        
-        closeModal();
-        loadExpenses();
-        loadChart(); // Update chart
-        alert('Saved!');
+        if (editId) {
+            await fetch('/api/expense-update', {
+                method: 'PUT', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id: editId, itemName, category, amount })
+            });
+        } else {
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(currentDate.getDate()).padStart(2, '0');
+            const data = { date: `${year}-${month}-${day}`, time: new Date().toLocaleTimeString(), itemName, category, amount };
+            await fetch('/api/expense', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+        }
+        closeModal(); loadExpenses(); loadChart(); loadFinancialStatus(); // Update funds too
     });
 
     // Admin Functions
+    async function updateHolding() {
+        await fetch('/api/update-holding', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name: document.getElementById('holdName').value,
+                type: document.getElementById('holdType').value,
+                amount: document.getElementById('holdAmount').value
+            })
+        });
+        alert('Updated!'); loadFinancialStatus();
+    }
+
     async function createUser() {
-        const name = document.getElementById('newInfoName').value;
-        const username = document.getElementById('newInfoUser').value;
-        const password = document.getElementById('newInfoPass').value;
         await fetch('/api/create-user', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({name, username, password})
-        });
-        alert('User Created!');
+            body: JSON.stringify({
+                name: document.getElementById('newInfoName').value,
+                username: document.getElementById('newInfoUser').value,
+                password: document.getElementById('newInfoPass').value
+            })
+        }); alert('User Created!');
     }
-
     async function addFund() {
-        const name = document.getElementById('fundName').value;
-        const amount = document.getElementById('fundAmount').value;
-        const date = document.getElementById('fundDate').value;
         await fetch('/api/fund', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({name, amount, date})
-        });
-        alert('Fund Added!');
-        loadFunds();
+            body: JSON.stringify({
+                name: document.getElementById('fundName').value,
+                amount: document.getElementById('fundAmount').value,
+                date: document.getElementById('fundDate').value
+            })
+        }); alert('Fund Added!'); loadFinancialStatus();
     }
 
-    async function logout() {
-        await fetch('/api/logout');
-        window.location.href = 'login.html';
-    }
-
-    // UI Toggles
+    async function logout() { await fetch('/api/logout'); window.location.href = 'login.html'; }
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
-    function openModal() { document.getElementById('entryModal').style.display = 'flex'; }
-    function closeModal() { document.getElementById('entryModal').style.display = 'none'; }
 
     init();
 </script>
