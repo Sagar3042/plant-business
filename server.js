@@ -50,10 +50,8 @@ const expenseSchema = new mongoose.Schema({
 const fundSchema = new mongoose.Schema({
     name: String, amount: String, date: String
 });
-// NEW: কার কাছে কত টাকা আছে (Cash/Online)
 const cashHoldingSchema = new mongoose.Schema({
-    name: String, type: String, // Cash or Online
-    amount: String // Encrypted
+    name: String, type: String, amount: String
 });
 const userSchema = new mongoose.Schema({
     username: String, password: String, role: String, name: String
@@ -64,7 +62,7 @@ const logSchema = new mongoose.Schema({
 
 const Expense = mongoose.model('Expense', expenseSchema);
 const Fund = mongoose.model('Fund', fundSchema);
-const CashHolding = mongoose.model('CashHolding', cashHoldingSchema); // New
+const CashHolding = mongoose.model('CashHolding', cashHoldingSchema);
 const User = mongoose.model('User', userSchema);
 const Log = mongoose.model('Log', logSchema);
 
@@ -76,6 +74,7 @@ app.use(session({
 }));
 
 // --- ROUTES ---
+
 // Login
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
@@ -100,18 +99,27 @@ app.get('/api/session', (req, res) => {
 });
 function requireLogin(req, res, next) { if (req.session.user) next(); else res.status(401).json({ error: 'Unauthorized' }); }
 
-// --- EXPENSE ---
+// --- EXPENSE MANAGEMENT ---
 app.post('/api/expense', requireLogin, async (req, res) => {
     const { date, time, category, itemName, amount } = req.body;
     await Expense.create({ date, time, category, itemName, amount: encrypt(amount), addedBy: req.session.user.name });
     res.json({ message: 'Saved' });
 });
+
 app.put('/api/expense-update', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     const { id, itemName, category, amount } = req.body;
     await Expense.findByIdAndUpdate(id, { itemName, category, amount: encrypt(amount) });
     res.json({ message: 'Updated' });
 });
+
+// NEW: Delete Expense
+app.delete('/api/expense/:id', requireLogin, async (req, res) => {
+    if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
+    await Expense.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Deleted' });
+});
+
 app.get('/api/expense', requireLogin, async (req, res) => {
     const { date } = req.query; let query = {}; if(date) query = { date: date };
     const expenses = await Expense.find(query).sort({_id: -1});
@@ -121,6 +129,7 @@ app.get('/api/expense', requireLogin, async (req, res) => {
     }));
     res.json(data);
 });
+
 app.get('/api/summary', requireLogin, async (req, res) => {
     const allExp = await Expense.find();
     let plantTotal = 0, otherTotal = 0;
@@ -135,66 +144,79 @@ app.get('/api/summary', requireLogin, async (req, res) => {
     res.json({ plant: plantTotal, other: otherTotal });
 });
 
-// --- FUND & CASH HOLDING MANAGEMENT ---
+// --- FUND & FINANCE ---
 
-// 1. Get Financial Overview (Total Fund, Total Expense, Holdings)
+// Get Financial Data & Fund List
 app.get('/api/finance-status', requireLogin, async (req, res) => {
-    // A. Calculate Total Fund Collected
-    const allFunds = await Fund.find();
+    const allFunds = await Fund.find().sort({date: -1}); // Sort by date new
     let totalFund = 0;
-    allFunds.forEach(f => totalTotal = totalFund += parseFloat(decrypt(f.amount)));
+    
+    const fundList = allFunds.map(f => {
+        const amt = parseFloat(decrypt(f.amount));
+        totalFund += amt;
+        return { id: f._id, name: f.name, amount: amt, date: f.date };
+    });
 
-    // B. Calculate Total Expense
     const allExpenses = await Expense.find();
     let totalExpense = 0;
     allExpenses.forEach(e => totalExpense += parseFloat(decrypt(e.amount)));
 
-    // C. Get Cash Holdings
     const holdings = await CashHolding.find();
     const holdingData = holdings.map(h => ({
         name: h.name, type: h.type, amount: decrypt(h.amount)
     }));
 
     res.json({
-        totalFund: totalFund,
-        totalExpense: totalExpense,
+        totalFund,
+        totalExpense,
         balance: totalFund - totalExpense,
-        holdings: holdingData
+        holdings: holdingData,
+        fundList: fundList // Sending detailed list
     });
 });
 
-// 2. Update Cash Holding (Admin Only)
-app.post('/api/update-holding', requireLogin, async (req, res) => {
-    if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
-    const { name, type, amount } = req.body;
-    
-    // Check if entry exists for this person and type
-    const existing = await CashHolding.findOne({ name, type });
-    if (existing) {
-        existing.amount = encrypt(amount);
-        await existing.save();
-    } else {
-        await CashHolding.create({ name, type, amount: encrypt(amount) });
-    }
-    res.json({ message: 'Holding Updated' });
-});
-
-// --- ADMIN ---
-app.post('/api/create-user', requireLogin, async (req, res) => {
-    if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Not Admin"});
-    const { name, username, password } = req.body;
-    await User.create({ name, username, password, role: 'partner' }); res.json({ message: 'Created' });
-});
+// Add Fund
 app.post('/api/fund', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Not Admin"});
     const { name, amount, date } = req.body;
     await Fund.create({ name, amount: encrypt(amount), date }); res.json({ message: 'Added' });
 });
-app.get('/api/fund', requireLogin, async (req, res) => {
-    const funds = await Fund.find().sort({ date: -1 });
-    const data = funds.map(f => ({ name: f.name, amount: decrypt(f.amount), date: f.date }));
-    res.json(data);
+
+// NEW: Update Fund
+app.put('/api/fund-update', requireLogin, async (req, res) => {
+    if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
+    const { id, name, amount, date } = req.body;
+    await Fund.findByIdAndUpdate(id, { name, amount: encrypt(amount), date });
+    res.json({ message: 'Fund Updated' });
 });
+
+// NEW: Delete Fund
+app.delete('/api/fund/:id', requireLogin, async (req, res) => {
+    if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
+    await Fund.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Fund Deleted' });
+});
+
+// Update Holdings
+app.post('/api/update-holding', requireLogin, async (req, res) => {
+    if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
+    const { name, type, amount } = req.body;
+    const existing = await CashHolding.findOne({ name, type });
+    if (existing) {
+        existing.amount = encrypt(amount); await existing.save();
+    } else {
+        await CashHolding.create({ name, type, amount: encrypt(amount) });
+    }
+    res.json({ message: 'Updated' });
+});
+
+// Admin User Create & Logs
+app.post('/api/create-user', requireLogin, async (req, res) => {
+    if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Not Admin"});
+    const { name, username, password } = req.body;
+    await User.create({ name, username, password, role: 'partner' }); res.json({ message: 'Created' });
+});
+
 app.get('/api/logs', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Not Admin"});
     const logs = await Log.find().sort({_id: -1}).limit(20); res.json(logs);
