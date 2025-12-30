@@ -11,15 +11,15 @@ app.use(cors());
 app.use(express.static('public'));
 
 // --- 1. MONGODB DATABASE CONNECTION ---
-// আপনার নতুন পাসওয়ার্ড (sagar12345) এখানে সেট করা হয়েছে
-const MONGO_URI = "mongodb+srv://prakritidost_db_user:sagar12345@cluster0.str6vtc.mongodb.net/?appName=Cluster0";
+// আপনার নতুন অ্যাডমিন ইউজারনেম ও পাসওয়ার্ড দিয়ে কানেকশন
+const MONGO_URI = "mongodb+srv://admin:sagar12345@cluster0.str6vtc.mongodb.net/?appName=Cluster0";
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log("✅ MongoDB Connected Successfully!"))
     .catch(err => console.error("❌ DB Connection Error:", err));
 
 // --- 2. ENCRYPTION SETUP (AES-256) ---
-// টাকার অংক এনক্রিপ্ট করার চাবি
+// টাকার অংক এবং পার্সোনাল ডাটা এনক্রিপ্ট করার চাবি
 const ENCRYPTION_KEY = crypto.scryptSync('my-secret-business-password', 'salt', 32); 
 const IV_LENGTH = 16; 
 
