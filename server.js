@@ -172,10 +172,9 @@ app.get('/api/finance-status', requireLogin, async (req, res) => {
     let totalExpense = 0;
     allExpenses.forEach(e => totalExpense += parseFloat(decrypt(e.amount)));
     
-    // UPDATED: Sending ID for deletion
     const holdings = await CashHolding.find();
     const holdingData = holdings.map(h => ({ 
-        id: h._id, // Added ID
+        id: h._id, 
         name: h.name, 
         type: h.type, 
         amount: decrypt(h.amount) 
@@ -199,17 +198,17 @@ app.delete('/api/fund/:id', requireLogin, async (req, res) => {
     await Fund.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' });
 });
 
-// Update Holding (Existing logic allows updating by name/type, but now we can also delete)
+// Holding APIs (Update & Delete)
 app.post('/api/update-holding', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     const { name, type, amount } = req.body;
+    // Check if exists
     const existing = await CashHolding.findOne({ name, type });
     if (existing) { existing.amount = encrypt(amount); await existing.save(); }
     else { await CashHolding.create({ name, type, amount: encrypt(amount) }); }
     res.json({ message: 'Updated' });
 });
 
-// NEW: Delete Holding API
 app.delete('/api/holding/:id', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     await CashHolding.findByIdAndDelete(req.params.id);

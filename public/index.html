@@ -16,23 +16,31 @@
         .header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--glass); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .menu-btn { font-size: 1.5rem; cursor: pointer; color: var(--green); }
 
-        /* CHART LAYOUT - STACKED */
-        .chart-section { width: 90%; margin: 20px auto; display: flex; flex-direction: column; gap: 15px; align-items: center; }
-        
-        .main-chart-box { 
-            width: 100%; max-width: 350px; 
-            background: var(--glass); padding: 15px; border-radius: 20px; 
-            border: 1px solid rgba(255,255,255,0.1); height: 250px; position: relative; 
+        /* NEW CHART LAYOUT */
+        .chart-wrapper { 
+            position: relative; 
+            width: 90%; margin: 20px auto; 
+            height: 280px; /* Taller to fit both */
+            background: var(--glass);
+            border-radius: 20px;
+            display: flex; justify-content: center; align-items: center;
         }
         
-        /* SMALLER DAILY CHART */
-        .sub-chart-box { 
-            width: 70%; max-width: 250px; 
-            background: rgba(255,255,255,0.03); padding: 10px; border-radius: 20px; 
-            border: 1px solid rgba(255,255,255,0.05); height: 180px; position: relative; 
-        }
+        /* Main Month Chart (Center) */
+        .chart-box-main { width: 220px; height: 220px; position: relative; }
+        .chart-label-main { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; font-size: 0.8rem; color: #aaa; pointer-events: none; }
 
-        .chart-title { position: absolute; top: 10px; left: 15px; font-size: 0.8rem; color: #aaa; font-weight: bold; }
+        /* Small Day Chart (Bottom Right) */
+        .chart-box-small { 
+            width: 90px; height: 90px; 
+            position: absolute; bottom: 10px; right: 10px; 
+            background: rgba(0,0,0,0.6); 
+            border-radius: 50%; 
+            padding: 5px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .small-label { position: absolute; bottom: -20px; width: 100%; text-align: center; font-size: 0.7rem; color: #fff; }
 
         .date-section { width: 90%; margin: 10px auto; text-align: center; }
         .date-nav { display: flex; justify-content: space-between; align-items: center; background: var(--glass); padding: 10px 20px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; }
@@ -44,9 +52,10 @@
         .expense-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 15px; margin-bottom: 10px; border-radius: 12px; border-left: 4px solid var(--green); }
         .amount { font-size: 1.1rem; font-weight: bold; color: var(--green); }
         
-        .action-btn { background: none; border: none; cursor: pointer; margin-left: 5px; font-size: 0.8rem; }
+        .action-btn { background: none; border: none; cursor: pointer; margin-left: 5px; font-size: 0.9rem; transition: 0.3s; }
         .btn-edit { color: #ffcc00; }
         .btn-del { color: #ff4b2b; }
+        .action-btn:hover { transform: scale(1.2); }
 
         .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: var(--green); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 2rem; color: #000; box-shadow: 0 5px 15px rgba(0,210,255,0.4); cursor: pointer; z-index: 100; border: none; }
 
@@ -74,14 +83,14 @@
     <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
 </div>
 
-<div class="chart-section">
-    <div class="main-chart-box">
-        <div class="chart-title">This Month</div>
+<div class="chart-wrapper">
+    <div class="chart-box-main">
         <canvas id="monthChart"></canvas>
+        <div class="chart-label-main">MONTH</div>
     </div>
-    <div class="sub-chart-box">
-        <div class="chart-title">Today</div>
+    <div class="chart-box-small">
         <canvas id="dayChart"></canvas>
+        <div class="small-label">TODAY</div>
     </div>
 </div>
 
@@ -106,7 +115,7 @@
         <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Expense:</span> <span style="color:#ff6b6b;" id="finExpense">₹ 0</span></div>
         <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:1.1rem; border-top:1px solid #333; padding-top:5px;"><span>Balance:</span> <span style="color:#ffcc00;" id="finBalance">₹ 0</span></div>
 
-        <h4 style="margin-top:20px; color:#aaa; font-size:0.8rem;">Cash In Hand / Online</h4>
+        <h4 style="margin-top:20px; color:#aaa; font-size:0.8rem;">Cash In Hand</h4>
         <div id="holdingList"></div>
 
         <h4 style="margin-top:20px; color:#aaa; font-size:0.8rem;">Contribution History</h4>
@@ -227,7 +236,7 @@
             return `<div class="fund-item"><div><span>${f.name}</span><br><small style="color:#666;">${f.date}</small></div><div><span style="color:#00d2ff;">${moneyFormat.format(f.amount)}</span>${actions}</div></div>`;
         }).join('');
 
-        // Cash Holding List
+        // Cash Holding List (Now with Delete Button)
         document.getElementById('holdingList').innerHTML = data.holdings.map(h => {
             let actions = currentUserRole === 'admin' ? 
                 `<button class="action-btn btn-edit" onclick="fillHoldingForm('${h.name}', '${h.type}', '${h.amount}')"><i class="fas fa-pen"></i></button>
@@ -251,7 +260,7 @@
         const res = await fetch(`/api/summary?date=${year}-${month}-${day}`);
         const data = await res.json();
 
-        // Month Chart (Doughnut)
+        // Month Chart (Blue & Orange)
         const ctxM = document.getElementById('monthChart').getContext('2d');
         if(monthChart) monthChart.destroy();
         monthChart = new Chart(ctxM, {
@@ -260,12 +269,12 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
 
-        // Day Chart (Doughnut - New Style)
+        // Day Chart (Purple & Green - New Colors)
         const ctxD = document.getElementById('dayChart').getContext('2d');
         if(dayChart) dayChart.destroy();
         dayChart = new Chart(ctxD, {
-            type: 'doughnut', // Changed from bar to doughnut
-            data: { labels: ['Plant', 'Other'], datasets: [{ data: [data.day.plant, data.day.other], backgroundColor: ['#00d2ff', '#e94560'], borderWidth: 0 }] },
+            type: 'doughnut', 
+            data: { labels: ['Plant', 'Other'], datasets: [{ data: [data.day.plant, data.day.other], backgroundColor: ['#8e44ad', '#2ecc71'], borderWidth: 0 }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
     }
@@ -274,14 +283,13 @@
     async function deleteExpense(id) { if(confirm('Delete?')) { await fetch(`/api/expense/${id}`, { method: 'DELETE' }); loadExpenses(); loadCharts(); loadFinancialStatus(); } }
     async function deleteFund(id) { if(confirm('Delete Fund?')) { await fetch(`/api/fund/${id}`, { method: 'DELETE' }); loadFinancialStatus(); } }
     
-    // NEW: Delete Holding
+    // Holding Actions
     async function deleteHolding(id) { if(confirm('Delete this holding?')) { await fetch(`/api/holding/${id}`, { method: 'DELETE' }); loadFinancialStatus(); } }
-    // Helper to fill form for editing holding
     function fillHoldingForm(name, type, amount) {
         document.getElementById('holdName').value = name;
         document.getElementById('holdType').value = type;
         document.getElementById('holdAmount').value = amount;
-        alert('Edit details in the form below and click Update');
+        alert('Edit details below and click Update');
     }
 
     // Modal Openers
