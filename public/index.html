@@ -16,9 +16,22 @@
         .header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--glass); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .menu-btn { font-size: 1.5rem; cursor: pointer; color: var(--green); }
 
-        /* Dual Chart Container */
-        .charts-row { display: flex; gap: 10px; width: 90%; margin: 20px auto; }
-        .chart-box { flex: 1; background: var(--glass); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); height: 220px; position: relative; }
+        /* CHART LAYOUT - STACKED */
+        .chart-section { width: 90%; margin: 20px auto; display: flex; flex-direction: column; gap: 15px; align-items: center; }
+        
+        .main-chart-box { 
+            width: 100%; max-width: 350px; 
+            background: var(--glass); padding: 15px; border-radius: 20px; 
+            border: 1px solid rgba(255,255,255,0.1); height: 250px; position: relative; 
+        }
+        
+        /* SMALLER DAILY CHART */
+        .sub-chart-box { 
+            width: 70%; max-width: 250px; 
+            background: rgba(255,255,255,0.03); padding: 10px; border-radius: 20px; 
+            border: 1px solid rgba(255,255,255,0.05); height: 180px; position: relative; 
+        }
+
         .chart-title { position: absolute; top: 10px; left: 15px; font-size: 0.8rem; color: #aaa; font-weight: bold; }
 
         .date-section { width: 90%; margin: 10px auto; text-align: center; }
@@ -31,7 +44,7 @@
         .expense-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 15px; margin-bottom: 10px; border-radius: 12px; border-left: 4px solid var(--green); }
         .amount { font-size: 1.1rem; font-weight: bold; color: var(--green); }
         
-        .action-btn { background: none; border: none; cursor: pointer; margin-left: 8px; font-size: 0.9rem; }
+        .action-btn { background: none; border: none; cursor: pointer; margin-left: 5px; font-size: 0.8rem; }
         .btn-edit { color: #ffcc00; }
         .btn-del { color: #ff4b2b; }
 
@@ -42,7 +55,7 @@
         .close-btn { font-size: 1.5rem; color: #ff6b6b; cursor: pointer; float: right; }
         
         .finance-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px; margin-top: 40px; border: 1px solid rgba(255,255,255,0.1); }
-        .fund-item { background: #222; padding: 8px; margin-bottom: 5px; border-radius: 5px; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
+        .fund-item, .holding-item { background: #222; padding: 8px; margin-bottom: 5px; border-radius: 5px; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 300; justify-content: center; align-items: center; }
         .modal-content { background: #222; padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; position: relative; }
@@ -61,13 +74,13 @@
     <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
 </div>
 
-<div class="charts-row">
-    <div class="chart-box">
-        <div class="chart-title">Month (Selected)</div>
+<div class="chart-section">
+    <div class="main-chart-box">
+        <div class="chart-title">This Month</div>
         <canvas id="monthChart"></canvas>
     </div>
-    <div class="chart-box">
-        <div class="chart-title">Today's Bar</div>
+    <div class="sub-chart-box">
+        <div class="chart-title">Today</div>
         <canvas id="dayChart"></canvas>
     </div>
 </div>
@@ -93,11 +106,11 @@
         <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Expense:</span> <span style="color:#ff6b6b;" id="finExpense">₹ 0</span></div>
         <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:1.1rem; border-top:1px solid #333; padding-top:5px;"><span>Balance:</span> <span style="color:#ffcc00;" id="finBalance">₹ 0</span></div>
 
-        <h4 style="margin-top:20px; color:#aaa; font-size:0.8rem;">History & Control</h4>
-        <div id="fundHistoryList" style="max-height: 200px; overflow-y: auto;"></div>
-
-        <h4 style="margin-top:15px; color:#aaa; font-size:0.8rem;">Cash In Hand</h4>
+        <h4 style="margin-top:20px; color:#aaa; font-size:0.8rem;">Cash In Hand / Online</h4>
         <div id="holdingList"></div>
+
+        <h4 style="margin-top:20px; color:#aaa; font-size:0.8rem;">Contribution History</h4>
+        <div id="fundHistoryList" style="max-height: 200px; overflow-y: auto;"></div>
     </div>
 
     <div id="adminControls" style="display:none; margin-top:20px;">
@@ -106,9 +119,9 @@
             <input type="text" id="holdName" placeholder="Name" style="width:100%; padding:5px; background:#333; border:none; color:white;">
             <select id="holdType" style="width:100%; margin-top:2px; padding:5px; background:#333; border:none; color:white;"><option value="Cash">Cash</option><option value="Online">Online</option></select>
             <input type="number" id="holdAmount" placeholder="Amount" style="width:100%; margin-top:2px; padding:5px; background:#333; border:none; color:white;">
-            <button onclick="updateHolding()" style="width:100%; padding:5px; background:#00d2ff; border:none; margin-top:5px;">Update</button>
+            <button onclick="updateHolding()" style="width:100%; padding:5px; background:#00d2ff; border:none; margin-top:5px;">Update / Add</button>
         </div>
-        <button onclick="openFundModal()" style="width:100%; padding:5px; background:#444; color:white; border:none; margin-bottom:5px;">+ Add Fund</button>
+        <button onclick="openFundModal()" style="width:100%; padding:5px; background:#444; color:white; border:none; margin-bottom:5px;">+ Add Fund Record</button>
         <button onclick="document.getElementById('userCreate').style.display='block'" style="width:100%; padding:5px; background:#444; color:white; border:none;">+ Create User</button>
         <div id="userCreate" style="display:none; margin-top:5px;">
             <input type="text" id="uName" placeholder="Name" style="width:100%; padding:2px; background:#333; border:none; color:white;">
@@ -206,16 +219,28 @@
         document.getElementById('finExpense').innerText = moneyFormat.format(data.totalExpense);
         document.getElementById('finBalance').innerText = moneyFormat.format(data.balance);
         
+        // Fund List
         document.getElementById('fundHistoryList').innerHTML = data.fundList.map(f => {
             let actions = currentUserRole === 'admin' ? 
-                `<button class="action-btn btn-edit" style="font-size:0.7rem;" onclick="editFund('${f.id}', '${f.name}', '${f.amount}', '${f.date}')"><i class="fas fa-pen"></i></button>
-                 <button class="action-btn btn-del" style="font-size:0.7rem;" onclick="deleteFund('${f.id}')"><i class="fas fa-trash"></i></button>` : '';
+                `<button class="action-btn btn-edit" onclick="editFund('${f.id}', '${f.name}', '${f.amount}', '${f.date}')"><i class="fas fa-pen"></i></button>
+                 <button class="action-btn btn-del" onclick="deleteFund('${f.id}')"><i class="fas fa-trash"></i></button>` : '';
             return `<div class="fund-item"><div><span>${f.name}</span><br><small style="color:#666;">${f.date}</small></div><div><span style="color:#00d2ff;">${moneyFormat.format(f.amount)}</span>${actions}</div></div>`;
         }).join('');
 
-        document.getElementById('holdingList').innerHTML = data.holdings.map(h => 
-            `<div style="display:flex; justify-content:space-between; font-size:0.8rem; background:#222; padding:5px; margin-bottom:2px;"><span>${h.name} (${h.type})</span><span style="color:#00d2ff;">${moneyFormat.format(h.amount)}</span></div>`
-        ).join('');
+        // Cash Holding List
+        document.getElementById('holdingList').innerHTML = data.holdings.map(h => {
+            let actions = currentUserRole === 'admin' ? 
+                `<button class="action-btn btn-edit" onclick="fillHoldingForm('${h.name}', '${h.type}', '${h.amount}')"><i class="fas fa-pen"></i></button>
+                 <button class="action-btn btn-del" onclick="deleteHolding('${h.id}')"><i class="fas fa-trash"></i></button>` : '';
+
+            return `<div class="holding-item">
+                <span>${h.name} (${h.type})</span>
+                <div>
+                    <span style="color:#00d2ff;">${moneyFormat.format(h.amount)}</span>
+                    ${actions}
+                </div>
+            </div>`
+        }).join('');
     }
 
     async function loadCharts() {
@@ -235,13 +260,13 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
 
-        // Day Chart (Bar)
+        // Day Chart (Doughnut - New Style)
         const ctxD = document.getElementById('dayChart').getContext('2d');
         if(dayChart) dayChart.destroy();
         dayChart = new Chart(ctxD, {
-            type: 'bar',
-            data: { labels: ['Plant', 'Other'], datasets: [{ label: 'Today', data: [data.day.plant, data.day.other], backgroundColor: ['#00d2ff', '#e94560'] }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } } }, plugins: { legend: { display: false } } }
+            type: 'doughnut', // Changed from bar to doughnut
+            data: { labels: ['Plant', 'Other'], datasets: [{ data: [data.day.plant, data.day.other], backgroundColor: ['#00d2ff', '#e94560'], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
     }
 
@@ -249,6 +274,16 @@
     async function deleteExpense(id) { if(confirm('Delete?')) { await fetch(`/api/expense/${id}`, { method: 'DELETE' }); loadExpenses(); loadCharts(); loadFinancialStatus(); } }
     async function deleteFund(id) { if(confirm('Delete Fund?')) { await fetch(`/api/fund/${id}`, { method: 'DELETE' }); loadFinancialStatus(); } }
     
+    // NEW: Delete Holding
+    async function deleteHolding(id) { if(confirm('Delete this holding?')) { await fetch(`/api/holding/${id}`, { method: 'DELETE' }); loadFinancialStatus(); } }
+    // Helper to fill form for editing holding
+    function fillHoldingForm(name, type, amount) {
+        document.getElementById('holdName').value = name;
+        document.getElementById('holdType').value = type;
+        document.getElementById('holdAmount').value = amount;
+        alert('Edit details in the form below and click Update');
+    }
+
     // Modal Openers
     function openExpenseModal() { document.getElementById('expenseModal').style.display = 'flex'; document.getElementById('expenseForm').reset(); document.getElementById('expId').value = ''; }
     window.editExpense = function(id, name, cat, amount) { openExpenseModal(); document.getElementById('expId').value = id; document.getElementById('itemName').value = name; document.getElementById('category').value = cat; document.getElementById('amount').value = amount; }

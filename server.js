@@ -4,23 +4,21 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const session = require('express-session');
 const cors = require('cors');
-// Local testing এর জন্য dotenv রাখা হলো, কিন্তু Render এ এটা অটোমেটিক কাজ করবে
-require('dotenv').config(); 
+require('dotenv').config();
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 app.use(express.static('public'));
 
-// --- MONGODB CONNECTION (SECURE) ---
-// এখানে আর কোনো পাসওয়ার্ড নেই। এটি Render এর সেটিংস থেকে আসবে।
+// --- MONGODB CONNECTION ---
 const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
-    console.error("❌ Error: MONGO_URI is missing! Check Render Environment Variables.");
+    console.error("❌ Error: MONGO_URI missing.");
 } else {
     mongoose.connect(MONGO_URI)
-        .then(() => console.log("✅ MongoDB Connected Securely!"))
+        .then(() => console.log("✅ MongoDB Connected!"))
         .catch(err => console.error("❌ DB Error:", err));
 }
 
@@ -133,12 +131,11 @@ app.get('/api/expense', requireLogin, async (req, res) => {
     res.json(data);
 });
 
-// Summary API (Corrected Date Logic)
+// Summary API
 app.get('/api/summary', requireLogin, async (req, res) => {
     const { date } = req.query; 
     const allExp = await Expense.find();
     
-    // Use selected date or fallback to today
     const targetDate = date ? new Date(date) : new Date();
     const targetMonth = targetDate.getMonth();
     const targetYear = targetDate.getFullYear();
@@ -150,14 +147,10 @@ app.get('/api/summary', requireLogin, async (req, res) => {
     allExp.forEach(ex => {
         const d = new Date(ex.date);
         const amt = parseFloat(decrypt(ex.amount));
-        
-        // Month Calculation
         if (d.getMonth() === targetMonth && d.getFullYear() === targetYear) {
             if (ex.category === 'Plant') monthStats.plant += amt; 
             else monthStats.other += amt;
         }
-
-        // Day Calculation
         if (ex.date === targetDayString) {
              if (ex.category === 'Plant') dayStats.plant += amt; 
              else dayStats.other += amt;
@@ -178,8 +171,15 @@ app.get('/api/finance-status', requireLogin, async (req, res) => {
     const allExpenses = await Expense.find();
     let totalExpense = 0;
     allExpenses.forEach(e => totalExpense += parseFloat(decrypt(e.amount)));
+    
+    // UPDATED: Sending ID for deletion
     const holdings = await CashHolding.find();
-    const holdingData = holdings.map(h => ({ name: h.name, type: h.type, amount: decrypt(h.amount) }));
+    const holdingData = holdings.map(h => ({ 
+        id: h._id, // Added ID
+        name: h.name, 
+        type: h.type, 
+        amount: decrypt(h.amount) 
+    }));
 
     res.json({ totalFund, totalExpense, balance: totalFund - totalExpense, holdings: holdingData, fundList });
 });
@@ -198,6 +198,8 @@ app.delete('/api/fund/:id', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     await Fund.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' });
 });
+
+// Update Holding (Existing logic allows updating by name/type, but now we can also delete)
 app.post('/api/update-holding', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
     const { name, type, amount } = req.body;
@@ -206,6 +208,14 @@ app.post('/api/update-holding', requireLogin, async (req, res) => {
     else { await CashHolding.create({ name, type, amount: encrypt(amount) }); }
     res.json({ message: 'Updated' });
 });
+
+// NEW: Delete Holding API
+app.delete('/api/holding/:id', requireLogin, async (req, res) => {
+    if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Admin Only"});
+    await CashHolding.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Deleted' });
+});
+
 app.post('/api/create-user', requireLogin, async (req, res) => {
     if(req.session.user.role !== 'admin') return res.status(403).json({msg: "Not Admin"});
     const { name, username, password } = req.body;
